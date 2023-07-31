@@ -12,7 +12,7 @@ function renderChannelList() {
             return`<option value="${val.id}">${val.name}</option>`
         }).join('\n')
         // console.log(ChannelListStr)
-        document.querySelector('.form-select').innerHTML = '<option value="" selected="">请选择文章频道</option>' + ChannelListStr
+        document.querySelector('.form-select').innerHTML = '<option value="" selected="selected">请选择文章频道</option>' + ChannelListStr
     })
     // console.log(res.data.data.channels)
     // const ChannelList = res.data.data.channels
