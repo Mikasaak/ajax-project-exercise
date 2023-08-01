@@ -6,10 +6,10 @@
 
 function renderChannelList() {
     // const res = await axios({url:'/v1_0/channels'})
-    axios({url:'/v1_0/channels'}).then(res=>{
+    axios({url: '/v1_0/channels'}).then(res => {
         const ChannelList = res.data.data.channels
-        const ChannelListStr = ChannelList.map(val=>{
-            return`<option value="${val.id}">${val.name}</option>`
+        const ChannelListStr = ChannelList.map(val => {
+            return `<option value="${val.id}">${val.name}</option>`
         }).join('\n')
         // console.log(ChannelListStr)
         document.querySelector('.form-select').innerHTML = '<option value="" selected="selected">请选择文章频道</option>' + ChannelListStr
@@ -36,18 +36,18 @@ renderChannelList()
 const img = document.querySelector('.rounded')
 const place = document.querySelector('.place')
 const imgInput = document.querySelector('.img-file')
-imgInput.addEventListener('change',async function(){
+imgInput.addEventListener('change', async function () {
     // console.log(this.files[0])
     const file = this.files[0]
     const data = new FormData()
-    data.append('image',file)
-    const res = await axios({url:'/v1_0/upload',method:'post',data})
+    data.append('image', file)
+    const res = await axios({url: '/v1_0/upload', method: 'post', data})
     console.log(res.data.data.url)
     img.src = res.data.data.url
     img.classList.add('show')
     place.classList.add('hide')
 })
-img.addEventListener('click',()=>{
+img.addEventListener('click', () => {
     imgInput.click()
 })
 /**
@@ -59,33 +59,34 @@ img.addEventListener('click',()=>{
  */
 
 const form = document.querySelector('.art-form')
-document.querySelector('.send').addEventListener('click',async ()=>{
-    let formData = serialize(form,{hash:true,empty:true})
-    formData.cover= {
-        type :1,
-        images:[img.src]
+document.querySelector('.send').addEventListener('click', async (e) => {
+    if (e.target.innerText !== '发布') return
+    let formData = serialize(form, {hash: true, empty: true})
+    formData.cover = {
+        type: img.src?1:0,
+        images: [img.src]
     }
     console.log(formData)
     try {
         const res = await axios({
-            url:'/v1_0/mp/articles',
+            url: '/v1_0/mp/articles',
             method: 'post',
             data: formData
         })
-        console.log('res',res)
-        myAlert(true,'发布成功')
+        console.log('res', res)
+        myAlert(true, '发布成功')
         //重置表单
         form.reset()
         img.src = res.data.data.url
         img.classList.remove('show')
         place.classList.remove('hide')
         editor.setHtml('')
-        setTimeout(()=>{
-            location.assign('../content/index.html')
-        },1500)
+        setTimeout(() => {
+            // location.assign('../content/index.html')
+        }, 1500)
 
-    } catch (err){
-        myAlert(false,err.response.data.message)
+    } catch (err) {
+        myAlert(false, err.response.data.message)
         console.log(err)
     }
 
@@ -99,6 +100,45 @@ document.querySelector('.send').addEventListener('click',async ()=>{
  *  4.3 修改标题和按钮文字
  *  4.4 获取文章详情数据并回显表单
  */
+;(function () {
+    const searchStr = location.search
+    if (searchStr !== '') {
+        const params = new URLSearchParams(searchStr)
+        console.log(params)
+        let paramsObj = {}
+        params.forEach((val, key) => {
+            Object.assign(paramsObj, {[key]: val})
+        })
+        console.log(paramsObj)
+        document.querySelector('.title').innerText = '修改文章'
+        document.querySelector('.send').innerText = '修改'
+        axios({
+            url: `/v1_0/mp/articles/${paramsObj.id}`
+        }).then(res => {
+            console.log(res)
+            const dataObj = {
+                channel_id: res.data.data.channel_id,
+                title: res.data.data.title,
+                rounded: res.data.data.cover.images[0], // 封面图片地址
+                content: res.data.data.content,
+                id: res.data.data.id
+            }
+            Object.keys(dataObj).forEach(key => {
+                if (key === 'rounded') {
+                    if (dataObj[key]) {
+                        img.src = dataObj[key]
+                        img.classList.add('show')
+                        place.classList.add('hide')
+                    }
+                } else if (key === 'content') {
+                    editor.setHtml(dataObj[key])
+                } else {
+                    document.querySelector(`[name = "${key}"]`).value = dataObj[key]
+                }
+            })
+        })
+    }
+})();
 
 /**
  * 目标5：编辑-保存文章
@@ -106,3 +146,24 @@ document.querySelector('.send').addEventListener('click',async ()=>{
  *  5.2 调用编辑文章接口，保存信息到服务器
  *  5.3 基于 Alert 反馈结果消息给用户
  */
+document.querySelector('.send').addEventListener('click', async (e) => {
+    if (e.target.innerText!=='修改') return
+    let formData = serialize(form, {hash: true, empty: true})
+    formData.cover = {
+        type: img.src?1:0,
+        images: [img.src]
+    }
+    console.log(formData)
+    try {
+        const res = await axios({
+            url: `/v1_0/mp/articles/${formData.id}`,
+            method: 'put',
+            data: formData
+        })
+        console.log(res)
+        myAlert(true,'修改成功')
+    } catch (e) {
+        console.log(e)
+        myAlert(false,e.response.data.message)
+    }
+})

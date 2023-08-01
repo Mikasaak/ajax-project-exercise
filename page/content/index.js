@@ -34,15 +34,16 @@ let queryParams = {
     per_page: 2
 }
 let totalPages = 0
+
 async function renderArticleList() {
     const res = await axios({
         url: '/v1_0/mp/articles',
         params: queryParams
     })
-    console.log(res.data.data.total_count)
+    // console.log('res', res)
     totalPages = res.data.data.total_count
     const totalArticle = document.querySelector('.total-count')
-    totalArticle.innerText = '共' + totalPages+ '条'
+    totalArticle.innerText = '共' + totalPages + '条'
     const articleList = res.data.data.results.map(item => `<tr>
                 <td>
                   <img src="${item.cover.type === 0 ? 'https://img2.baidu.com/it/u=2640406343,1419332367&amp;fm=253&amp;fmt=auto&amp;app=138&amp;f=JPEG?w=708&amp;h=500' : item.cover.images[0]}" alt="">
@@ -63,14 +64,14 @@ async function renderArticleList() {
                 <td>
                   <span>${item.like_count}</span>
                 </td>
-                <td>
+                <td data-id="${item.id}">
                   <i class="bi bi-pencil-square edit"></i>
                   <i class="bi bi-trash3 del"></i>
                 </td>
               </tr>`).join('')
     // console.log(articleList)
     document.querySelector('.art-list').innerHTML = articleList
-    console.log(res.data.data.results)
+    // console.log(res.data.data.results)
 }
 
 renderArticleList()
@@ -91,7 +92,7 @@ btn.addEventListener('click', async () => {
         url: '/v1_0/mp/articles',
         params: Object.assign(queryParams, formData)
     })
-    console.log(res)
+    // console.log(res)
     renderArticleList()
 })
 /**
@@ -104,15 +105,15 @@ const lastPage = document.querySelector('.page-item.last')
 const nextPage = document.querySelector('.page-item.next')
 const nowPage = document.querySelector('.page-item.page-now')
 
-nextPage.addEventListener('click',()=>{
+nextPage.addEventListener('click', () => {
     if (queryParams.page < Math.ceil(totalPages / queryParams.page)) {
         queryParams.page++
         nowPage.innerText = `第${queryParams.page}页`
         renderArticleList()
     }
 })
-lastPage.addEventListener('click',()=>{
-    if (queryParams.page>1) {
+lastPage.addEventListener('click', () => {
+    if (queryParams.page > 1) {
         queryParams.page--
         nowPage.innerText = `第${queryParams.page}页`
         renderArticleList()
@@ -127,6 +128,33 @@ lastPage.addEventListener('click',()=>{
  *  4.4 重新获取文章列表，并覆盖展示
  *  4.5 删除最后一页的最后一条，需要自动向前翻页
  */
+const artList = document.querySelector('.align-middle.art-list')
+artList.addEventListener('click', async (e) => {
+    const parentElement = e.target.parentElement;
+    if (e.target.classList.contains('del')) {
+        // console.log('del')
+        // console.log(parentElement)
+        try {
+            const res = await axios({url: `/v1_0/mp/articles/${parentElement.dataset.id}`, method: 'DELETE'})
+            console.log(res)
+            // renderArticleList()
+            console.log(document.querySelector('.art-list').children)
+            if (document.querySelector('.art-list').children.length===1&&queryParams.page!==1){
+                queryParams.page--
+                nowPage.innerText = `第${queryParams.page}页`
+            }
+            renderArticleList()
 
+        } catch (e) {
+            console.dir(e)
+        }
+    }
+})
 // 点击编辑时，获取文章 id，跳转到发布文章页面传递文章 id 过去
+artList.addEventListener('click',e=>{
+    if (e.target.classList.contains('edit')) {
+        const id = e.target.parentElement.dataset.id
+        location.href=`../publish/index.html?id=${id}`
+    }
+})
 
